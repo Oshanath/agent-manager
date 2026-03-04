@@ -59,7 +59,7 @@ echo ""
 
 # Create Certificate for Control Plane TLS
 echo "📜 Creating Certificate for Control Plane TLS..."
-kubectl apply -f - <<EOF
+kubectl apply --server-side --force-conflicts -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -88,7 +88,7 @@ helm upgrade --install openchoreo-data-plane oci://ghcr.io/openchoreo/helm-chart
 
 # Create Certificate for Gateway TLS
 echo "📜 Creating Certificate for Gateway TLS..."
-kubectl apply -f - <<EOF
+kubectl apply --server-side --force-conflicts -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -109,7 +109,7 @@ echo ""
 echo "3️⃣  Registering Data Plane..."
 CA_CERT=$(kubectl get secret cluster-agent-tls -n openchoreo-data-plane -o jsonpath='{.data.ca\.crt}' 2>/dev/null | base64 -d || echo "")
 if [ -n "$CA_CERT" ]; then
-    kubectl apply -f - <<EOF
+    kubectl apply --server-side --force-conflicts -f - <<EOF
 apiVersion: openchoreo.dev/v1alpha1
 kind: DataPlane
 metadata:
@@ -137,7 +137,11 @@ echo ""
 echo ""
 echo "🔍 Verifying DataPlane..."
 kubectl get dataplane -n default
-kubectl logs -n openchoreo-data-plane -l app=cluster-agent --tail=10
+echo "⏳ Waiting for Data Plane agent to be ready..."
+kubectl wait --for=condition=Ready pod -l app=cluster-agent-dataplane -n openchoreo-data-plane --timeout=120s 2>/dev/null || \
+    kubectl wait --for=condition=Ready pod -l app=cluster-agent -n openchoreo-data-plane --timeout=120s 2>/dev/null || \
+    echo "⚠️  Data Plane agent pods may still be starting"
+kubectl logs -n openchoreo-data-plane -l app=cluster-agent --tail=10 2>/dev/null || true
 echo "Verify API Platform Gateway pods:"
 kubectl get pods -n openchoreo-data-plane --selector="app.kubernetes.io/instance=api-platform-default-gateway"
 echo "✅ OpenChoreo Data Plane ready"
@@ -172,7 +176,7 @@ helm upgrade --install openchoreo-build-plane oci://ghcr.io/openchoreo/helm-char
 echo "5️⃣  Registering Build Plane..."
 BP_CA_CERT=$(kubectl get secret cluster-agent-tls -n openchoreo-build-plane -o jsonpath='{.data.ca\.crt}' 2>/dev/null | base64 -d || echo "")
 if [ -n "$BP_CA_CERT" ]; then
-    kubectl apply -f - <<EOF
+    kubectl apply --server-side --force-conflicts -f - <<EOF
 apiVersion: openchoreo.dev/v1alpha1
 kind: BuildPlane
 metadata:
@@ -247,7 +251,7 @@ else
     echo "   This may take up to 15 minutes..."
     kubectl create namespace openchoreo-observability-plane --dry-run=client -o yaml | kubectl apply -f -
 
-    kubectl apply -f $1/deployments/values/oc-collector-configmap.yaml -n openchoreo-observability-plane
+    kubectl apply --server-side --force-conflicts -f $1/deployments/values/oc-collector-configmap.yaml -n openchoreo-observability-plane
 
     helm install openchoreo-observability-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-observability-plane \
         --version ${OPENCHOREO_VERSION} \
@@ -277,7 +281,7 @@ fi
 echo "5️⃣  Registering Observability Plane..."
 OP_CA_CERT=$(kubectl get secret cluster-agent-tls -n openchoreo-observability-plane -o jsonpath='{.data.ca\.crt}' 2>/dev/null | base64 -d || echo "")
 if [ -n "$OP_CA_CERT" ]; then
-    kubectl apply -f - <<EOF
+    kubectl apply --server-side --force-conflicts -f - <<EOF
 apiVersion: openchoreo.dev/v1alpha1
 kind: ObservabilityPlane
 metadata:
@@ -358,13 +362,13 @@ echo "   Creating local development config..."
 cp "${SCRIPT_DIR}/../values/api-platform-operator-full-config.yaml" "${SCRIPT_DIR}/../values/api-platform-operator-local-config.yaml"
 # Update JWKS URI for local development
 sed -i '' 's|http://amp-api.wso2-amp.svc.cluster.local:9000/auth/external/jwks.json|http://host.docker.internal:9000/auth/external/jwks.json|g' "${SCRIPT_DIR}/../values/api-platform-operator-local-config.yaml"
-kubectl apply -f "${SCRIPT_DIR}/../values/api-platform-operator-local-config.yaml"
+kubectl apply --server-side --force-conflicts -f "${SCRIPT_DIR}/../values/api-platform-operator-local-config.yaml"
 echo "✅ Gateway configuration applied"
 echo ""
 
 # Apply Gateway and API Resources
 echo "1️⃣3️⃣ Applying Gateway and API Resources..."
-kubectl apply -f "${SCRIPT_DIR}/../values/obs-gateway.yaml"
+kubectl apply --server-side --force-conflicts -f "${SCRIPT_DIR}/../values/obs-gateway.yaml"
 
 echo "⏳ Waiting for Gateway to be ready..."
 if kubectl wait --for=condition=Programmed gateway/obs-gateway -n openchoreo-data-plane --timeout=180s; then
@@ -378,7 +382,7 @@ echo "Gateway status:"
 kubectl get gateway obs-gateway -n openchoreo-data-plane -o yaml
 echo ""
 
-kubectl apply -f "${SCRIPT_DIR}/../values/otel-collector-rest-api.yaml"
+kubectl apply --server-side --force-conflicts -f "${SCRIPT_DIR}/../values/otel-collector-rest-api.yaml"
 
 echo "⏳ Waiting for RestApi to be programmed..."
 if kubectl wait --for=condition=Programmed restapi/traces-api-secure -n openchoreo-data-plane --timeout=120s; then
