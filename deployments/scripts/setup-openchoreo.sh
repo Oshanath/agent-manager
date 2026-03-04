@@ -165,6 +165,12 @@ helm upgrade --install registry docker-registry \
 echo "⏳ Waiting for Docker Registry to be ready..."
 kubectl wait --for=condition=available deployment/registry-docker-registry -n openchoreo-build-plane --timeout=120s
 
+echo "📜 Copying cluster-gateway-ca to build plane namespace..."
+kubectl get configmap cluster-gateway-ca -n openchoreo-control-plane -o json | \
+    jq '.metadata.namespace = "openchoreo-build-plane" | del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.managedFields, .metadata.annotations)' | \
+    kubectl apply --server-side --force-conflicts -f -
+echo "✅ cluster-gateway-ca copied to openchoreo-build-plane"
+
 echo "4️⃣  Installing/Upgrading OpenChoreo Build Plane..."
 helm upgrade --install openchoreo-build-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-build-plane \
 --version ${OPENCHOREO_VERSION} \
