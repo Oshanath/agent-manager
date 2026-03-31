@@ -40,9 +40,18 @@ gateway:
   # Human-readable display name
   displayName: "Default AI Gateway"
   # Virtual host (FQDN or IP) that the gateway is reachable on
-  vhost: "http://default-ai-gateway-gateway-runtime.openchoreo-data-plane.svc.cluster.local:8084"
+  vhost: "http://ai-gateway.amp.localhost:8080"
   # Gateway type: must be "AI"
   type: "AI"
+
+  # OpenChoreo ingress configuration for localhost accessibility
+  ocIngress:
+    # Hostname for the AI gateway HTTPRoute (must resolve to OpenChoreo gateway on port 8080)
+    hostname: "ai-gateway.amp.localhost"
+    # Service name of the AI gateway runtime in the data-plane namespace
+    runtimeServiceName: "default-ai-gateway-gateway-runtime"
+    # Port of the AI gateway runtime service
+    runtimeServicePort: 8084
 
   # The generated registration token is stored in this Kubernetes Secret.
   # It is then referenced by the APIGateway CR spec.controlPlane.tokenSecretRef.

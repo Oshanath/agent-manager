@@ -1,0 +1,50 @@
+---
+# ReferenceGrant to allow HTTPRoute in openchoreo-control-plane to reference Service in openchoreo-data-plane
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: amp-ai-gateway-backend
+  namespace: {{ .Values.apiGateway.namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: ai-gateway
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: openchoreo-control-plane
+  to:
+    - group: ""
+      kind: Service
+---
+# HTTPRoute in openchoreo-control-plane namespace to route traffic to AI Gateway runtime
+# This is required because the gateway-default Gateway only allows HTTPRoutes from the same namespace
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-gateway
+  namespace: openchoreo-control-plane
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: ai-gateway
+spec:
+  hostnames:
+    - {{ .Values.gateway.ocIngress.hostname }}
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: gateway-default
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ .Values.gateway.ocIngress.runtimeServiceName }}
+          namespace: {{ .Values.apiGateway.namespace }}
+          port: {{ .Values.gateway.ocIngress.runtimeServicePort }}
+          weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /

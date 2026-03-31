@@ -92,6 +92,8 @@ services:
       - "api.openchoreo.localhost:host-gateway"
       # Thunder IDP for OAuth2 token exchange (must match OpenChoreo's security.oidc config)
       - "thunder.amp.localhost:host-gateway"
+      # AI gateway runtime for agent endpoint access via OpenChoreo gateway
+      - "ai-gateway.amp.localhost:host-gateway"
 
   # Agent Manager Console (React Frontend)
   agent-manager-console:
