@@ -1,6 +1,7 @@
 """Instance-level configuration, read from env at startup.
 
-MCP server URLs are provided as a comma-separated list in ``MCP_SERVER_URLS``.
+MCP server URLs are provided as a comma-separated list in
+``BIJIRA_MCP_EVERYTHING_LOCAL_SECURE_URL``.
 Each URL must point to a deployed MCP proxy (e.g. the gateway-exposed endpoint).
 
 LLM calls are always routed through the Agent Manager LLM proxy using
@@ -30,7 +31,7 @@ class Config:
 
     @classmethod
     def from_env(cls) -> "Config":
-        raw_urls = _env("MCP_SERVER_URLS", "")
+        raw_urls = _env("BIJIRA_MCP_EVERYTHING_LOCAL_SECURE_URL", "")
         mcp_server_urls = [u.strip() for u in raw_urls.split(",") if u.strip()]
 
         return cls(
