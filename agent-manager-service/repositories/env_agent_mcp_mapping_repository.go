@@ -1,0 +1,106 @@
+// Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+//
+// WSO2 LLC. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package repositories
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
+	"github.com/wso2/agent-manager/agent-manager-service/models"
+)
+
+// EnvAgentMCPMappingRepository defines data access for per-environment MCP mappings.
+type EnvAgentMCPMappingRepository interface {
+	Create(ctx context.Context, tx *gorm.DB, mapping *models.EnvAgentMCPMapping, handle, name, version, orgName string) error
+	ListByConfig(ctx context.Context, configUUID uuid.UUID) ([]models.EnvAgentMCPMapping, error)
+	// ListByMCPProxy returns every mapping that derives from the given source proxy.
+	// Used by the redeploy-on-update cascade so agent-scoped artifacts pick up new
+	// upstream/auth/policies on their respective gateways.
+	ListByMCPProxy(ctx context.Context, mcpProxyUUID uuid.UUID) ([]models.EnvAgentMCPMapping, error)
+	Update(ctx context.Context, tx *gorm.DB, mapping *models.EnvAgentMCPMapping) error
+	Delete(ctx context.Context, tx *gorm.DB, mappingID uint) error
+	DeleteByConfig(ctx context.Context, tx *gorm.DB, configUUID uuid.UUID) error
+}
+
+type envAgentMCPMappingRepository struct {
+	db           *gorm.DB
+	artifactRepo ArtifactRepository
+}
+
+// NewEnvAgentMCPMappingRepository creates a new repository.
+func NewEnvAgentMCPMappingRepository(db *gorm.DB) EnvAgentMCPMappingRepository {
+	return &envAgentMCPMappingRepository{
+		db:           db,
+		artifactRepo: NewArtifactRepo(db),
+	}
+}
+
+func (r *envAgentMCPMappingRepository) Create(ctx context.Context, tx *gorm.DB, mapping *models.EnvAgentMCPMapping, handle, name, version, orgName string) error {
+	if mapping.ArtifactUUID == uuid.Nil {
+		mapping.ArtifactUUID = uuid.New()
+	}
+	now := time.Now()
+	if err := r.artifactRepo.Create(tx, &models.Artifact{
+		UUID:             mapping.ArtifactUUID,
+		Handle:           handle,
+		Name:             name,
+		Version:          version,
+		Kind:             models.KindMCPProxy,
+		OrganizationName: orgName,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}); err != nil {
+		return fmt.Errorf("failed to create MCP config artifact: %w", err)
+	}
+	return tx.WithContext(ctx).Create(mapping).Error
+}
+
+func (r *envAgentMCPMappingRepository) ListByConfig(ctx context.Context, configUUID uuid.UUID) ([]models.EnvAgentMCPMapping, error) {
+	var mappings []models.EnvAgentMCPMapping
+	err := r.db.WithContext(ctx).
+		Preload("MCPProxy").
+		Preload("MCPProxy.Artifact").
+		Where("config_uuid = ?", configUUID).
+		Find(&mappings).Error
+	return mappings, err
+}
+
+func (r *envAgentMCPMappingRepository) ListByMCPProxy(ctx context.Context, mcpProxyUUID uuid.UUID) ([]models.EnvAgentMCPMapping, error) {
+	var mappings []models.EnvAgentMCPMapping
+	err := r.db.WithContext(ctx).
+		Where("mcp_proxy_uuid = ?", mcpProxyUUID).
+		Find(&mappings).Error
+	return mappings, err
+}
+
+func (r *envAgentMCPMappingRepository) Update(ctx context.Context, tx *gorm.DB, mapping *models.EnvAgentMCPMapping) error {
+	return tx.WithContext(ctx).Save(mapping).Error
+}
+
+func (r *envAgentMCPMappingRepository) Delete(ctx context.Context, tx *gorm.DB, mappingID uint) error {
+	return tx.WithContext(ctx).Delete(&models.EnvAgentMCPMapping{}, mappingID).Error
+}
+
+func (r *envAgentMCPMappingRepository) DeleteByConfig(ctx context.Context, tx *gorm.DB, configUUID uuid.UUID) error {
+	return tx.WithContext(ctx).
+		Where("config_uuid = ?", configUUID).
+		Delete(&models.EnvAgentMCPMapping{}).Error
+}

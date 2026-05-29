@@ -23,7 +23,6 @@ import {
   Card,
   CardContent,
   Form,
-  ListingTable,
   Skeleton,
   Stack,
   Tab,
@@ -44,10 +43,11 @@ import {
   useUpdateAgentModelConfig,
 } from "@agent-management-platform/api-client";
 import {
-  GuardrailsSection,
-  type GuardrailSelection,
-} from "@agent-management-platform/llm-providers";
+  PolicyListSection,
+  type PolicySelection as GuardrailSelection,
+} from "@agent-management-platform/shared-component";
 import { ProviderDisplay } from "./AddLLMProvider.Component";
+import { EnvironmentVariablesReference } from "./Configure/subComponents/EnvironmentVariablesReference";
 
 function generateDisplayName(key: string): string {
   switch (key) {
@@ -527,141 +527,104 @@ export const ViewLLMProviderComponent: React.FC = () => {
         )}
 
         {!isExternal && config.environmentVariables?.length > 0 && (
-          <Alert severity="info" sx={{ mt: 2 }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-              Environment Variables References
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              The following environment variables will be injected into
-              the agent deployment with environment-specific values.
-              If your code already uses different variable names,
-              you can update them below to ensure compatibility.
-            </Typography>
+          <EnvironmentVariablesReference
+            description="The following environment variables will be injected into the agent deployment with environment-specific values. If your code already uses different variable names, you can update them below to ensure compatibility."
+            rows={config.environmentVariables.map((envVar) => ({
+              key: envVar.key,
+              name: envVarNames[envVar.key] ?? envVar.name,
+              description: generateDisplayName(envVar.key),
+            }))}
+            onNameChange={(key, value) =>
+              setEnvVarNames((prev) => ({ ...prev, [key]: value }))
+            }
+          >
+            <ToggleButtonGroup
+              size="small"
+              value={snippetTab}
+              exclusive
+              color="primary"
+              onChange={(_, v: number | null) => { if (v !== null) setSnippetTab(v); }}
+              sx={{ mb: 2 }}
+            >
+              <ToggleButton value={0} sx={{ textTransform: "none" }}>Python</ToggleButton>
+              <ToggleButton value={1} sx={{ textTransform: "none" }}>AI Prompt</ToggleButton>
+            </ToggleButtonGroup>
 
-            <Stack spacing={1}>
-              <ListingTable.Container>
-                <ListingTable density="compact">
-                  <ListingTable.Head>
-                    <ListingTable.Row>
-                      <ListingTable.Cell>Variable Name</ListingTable.Cell>
-                      <ListingTable.Cell>Description</ListingTable.Cell>
-                    </ListingTable.Row>
-                  </ListingTable.Head>
-                  <ListingTable.Body>
-                    {config.environmentVariables.map((envVar) => (
-                      <ListingTable.Row key={envVar.key}>
-                        <ListingTable.Cell>
-                          <TextInput
-                            value={envVarNames[envVar.key] ?? envVar.name}
-                            onChange={(e) =>
-                              setEnvVarNames((prev) => ({
-                                ...prev,
-                                [envVar.key]: e.target.value,
-                              }))
-                            }
-                            copyable
-                            copyTooltipText={`Copy ${envVarNames[envVar.key] ?? envVar.name}`}
-                            size="small"
-                          />
-                        </ListingTable.Cell>
-                        <ListingTable.Cell>
-                          <Typography variant="body2" color="text.secondary">
-                            {generateDisplayName(envVar.key)}
-                          </Typography>
-                        </ListingTable.Cell>
-                      </ListingTable.Row>
-                    ))}
-                  </ListingTable.Body>
-                </ListingTable>
-              </ListingTable.Container>
-              <ToggleButtonGroup
+            {snippetTab === 0 && (
+              <TextInput
+                label="Python Code Snippet"
+                value={(() => {
+                  const clientSetup = getClientSetupSnippet(
+                    catalogProvider?.template,
+                    config.environmentVariables.map((ev) => ev.key),
+                  );
+                  const imports = ["import os"];
+                  if (clientSetup) imports.push(clientSetup.importLine);
+                  const envVars = config.environmentVariables.map(
+                    (envVar) =>
+                      `${envVar.key} = os.environ.get('${envVarNames[envVar.key] ?? envVar.name}')`,
+                  );
+                  const parts = [imports.join("\n"), "", ...envVars];
+                  if (clientSetup) parts.push("", clientSetup.setup);
+                  return parts.join("\n");
+                })()}
+                copyable
+                copyTooltipText="Copy Code Snippet"
+                slotProps={{
+                  input: {
+                    sx: { fontFamily: "Source Code Pro, monospace" },
+                    readOnly: true,
+                    multiline: true,
+                    rows: Math.min(
+                      config.environmentVariables.length + 8,
+                      15,
+                    ),
+                  },
+                }}
                 size="small"
-                value={snippetTab}
-                exclusive
-                color="primary"
-                onChange={(_, v: number | null) => { if (v !== null) setSnippetTab(v); }}
-                sx={{ mb: 2 }}
-              >
-                <ToggleButton value={0} sx={{ textTransform: "none" }}>Python</ToggleButton>
-                <ToggleButton value={1} sx={{ textTransform: "none" }}>AI Prompt</ToggleButton>
-              </ToggleButtonGroup>
+              />
+            )}
 
-              {snippetTab === 0 && (
-                <TextInput
-                  label="Python Code Snippet"
-                  value={(() => {
-                    const clientSetup = getClientSetupSnippet(
-                      catalogProvider?.template,
-                      config.environmentVariables.map((ev) => ev.key),
-                    );
-                    const imports = ["import os"];
-                    if (clientSetup) imports.push(clientSetup.importLine);
-                    const envVars = config.environmentVariables.map(
-                      (envVar) =>
-                        `${envVar.key} = os.environ.get('${envVarNames[envVar.key] ?? envVar.name}')`,
-                    );
-                    const parts = [imports.join("\n"), "", ...envVars];
-                    if (clientSetup) parts.push("", clientSetup.setup);
-                    return parts.join("\n");
-                  })()}
-                  copyable
-                  copyTooltipText="Copy Code Snippet"
-                  slotProps={{
-                    input: {
-                      sx: { fontFamily: "Source Code Pro, monospace" },
-                      readOnly: true,
-                      multiline: true,
-                      rows: Math.min(
-                        config.environmentVariables.length + 8,
-                        15,
-                      ),
-                    },
-                  }}
-                  size="small"
-                />
-              )}
-
-              {snippetTab === 1 && (
-                <TextInput
-                  label="AI Prompt — Update Your Code"
-                  value={(() => {
-                    const providerName = templateDisplayName
-                      ?? catalogProvider?.name
-                      ?? providerConfig?.providerName
-                      ?? "the LLM provider";
-                    const envVarList = config.environmentVariables
-                      .map(
-                        (ev) =>
-                          `- ${generateDisplayName(ev.key)}: \`${envVarNames[ev.key] ?? ev.name}\``,
-                      )
-                      .join("\n");
-                    return [
-                      `Update my code to use ${providerName}.`,
-                      "",
-                      "Environment variables that will be injected at runtime:",
-                      envVarList,
-                      "",
-                      "Requirements:",
-                      `- Read the environment variables listed above to configure the client for ${providerName}.`,
-                      `- Initialize the ${providerName} client with the URL and API key from those variables.`,
-                      "- Do not hardcode any secrets or endpoint URLs.",
-                      "- Keep the rest of my code unchanged.",
-                    ].join("\n");
-                  })()}
-                  copyable
-                  copyTooltipText="Copy Prompt"
-                  slotProps={{
-                    input: {
-                      readOnly: true,
-                      multiline: true,
-                      rows: 10,
-                    },
-                  }}
-                  size="small"
-                />
-              )}
-            </Stack>
-          </Alert>
+            {snippetTab === 1 && (
+              <TextInput
+                label="AI Prompt — Update Your Code"
+                value={(() => {
+                  const providerName = templateDisplayName
+                    ?? catalogProvider?.name
+                    ?? providerConfig?.providerName
+                    ?? "the LLM provider";
+                  const envVarList = config.environmentVariables
+                    .map(
+                      (ev) =>
+                        `- ${generateDisplayName(ev.key)}: \`${envVarNames[ev.key] ?? ev.name}\``,
+                    )
+                    .join("\n");
+                  return [
+                    `Update my code to use ${providerName}.`,
+                    "",
+                    "Environment variables that will be injected at runtime:",
+                    envVarList,
+                    "",
+                    "Requirements:",
+                    `- Read the environment variables listed above to configure the client for ${providerName}.`,
+                    `- Initialize the ${providerName} client with the URL and API key from those variables.`,
+                    "- Do not hardcode any secrets or endpoint URLs.",
+                    "- Keep the rest of my code unchanged.",
+                  ].join("\n");
+                })()}
+                copyable
+                copyTooltipText="Copy Prompt"
+                slotProps={{
+                  input: {
+                    readOnly: true,
+                    multiline: true,
+                    rows: 10,
+                  },
+                }}
+                size="small"
+              />
+            )}
+          </EnvironmentVariablesReference>
         )}
 
         <Form.Section>
@@ -842,11 +805,25 @@ export const ViewLLMProviderComponent: React.FC = () => {
             )}
 
 
-            <GuardrailsSection
-              guardrails={guardrails}
-              onAddGuardrail={handleAddGuardrail}
-              onEditGuardrail={handleEditGuardrail}
-              onRemoveGuardrail={handleRemoveGuardrail}
+            <PolicyListSection
+              title="Guardrails"
+              description="Add safety policies to enforce consistent protections."
+              addButtonLabel="Add Guardrail"
+              drawerAddTitle="Add Guardrail"
+              drawerEditTitle="Edit Guardrail"
+              drawerAddSubtitle="Choose a guardrail to configure advanced options."
+              drawerEditSubtitle="Update the guardrail configuration."
+              policyNoun="guardrail"
+              loadingLabel="Loading guardrails..."
+              searchPlaceholder="Search guardrails..."
+              catalogErrorLabel="Failed to load guardrails."
+              emptySearchTitle="No guardrails match your search"
+              emptyCatalogTitle="No guardrails available"
+              emptyCatalogDescription="No guardrail policies are available in the catalog."
+              policies={guardrails}
+              onAdd={handleAddGuardrail}
+              onEdit={handleEditGuardrail}
+              onRemove={handleRemoveGuardrail}
             />
 
 

@@ -88,6 +88,9 @@ func (r *agentConfigurationRepository) GetByUUID(ctx context.Context, configUUID
 	err := r.db.WithContext(ctx).
 		Preload("EnvMappings").
 		Preload("EnvMappings.LLMProxy").
+		Preload("EnvMCPMappings").
+		Preload("EnvMCPMappings.MCPProxy").
+		Preload("EnvMCPMappings.MCPProxy.Artifact").
 		Preload("EnvVariables").
 		Where("uuid = ? AND organization_name = ?", configUUID, orgName).
 		First(&config).Error
@@ -99,6 +102,9 @@ func (r *agentConfigurationRepository) GetByAgentID(ctx context.Context, agentID
 	err := r.db.WithContext(ctx).
 		Preload("EnvMappings").
 		Preload("EnvMappings.LLMProxy").
+		Preload("EnvMCPMappings").
+		Preload("EnvMCPMappings.MCPProxy").
+		Preload("EnvMCPMappings.MCPProxy.Artifact").
 		Preload("EnvVariables").
 		Where("agent_id = ? AND organization_name = ?", agentID, orgName).
 		First(&config).Error

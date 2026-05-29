@@ -15,16 +15,14 @@
  * under the License.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  DrawerContent,
-  DrawerHeader,
-  DrawerWrapper,
   PageLayout,
+  SelectionDrawer,
+  SelectionIndicator,
 } from "@agent-management-platform/views";
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   CardContent,
@@ -35,7 +33,6 @@ import {
   FormLabel,
   ListingTable,
   Skeleton,
-  SearchBar,
   Stack,
   Tab,
   Tabs,
@@ -45,8 +42,6 @@ import {
 } from "@wso2/oxygen-ui";
 import {
   AlertTriangle,
-  Check,
-  Circle,
   DoorClosedLocked,
   Link,
   Search,
@@ -67,9 +62,9 @@ import {
   useUpdateAgentModelConfig,
 } from "@agent-management-platform/api-client";
 import {
-  GuardrailsSection,
-  type GuardrailSelection,
-} from "@agent-management-platform/llm-providers";
+  PolicyListSection,
+  type PolicySelection as GuardrailSelection,
+} from "@agent-management-platform/shared-component";
 
 type DeploymentSummary = { gatewayName?: string; deployedAt?: string };
 
@@ -103,18 +98,7 @@ export const ProviderDisplay: React.FC<{
   const latest = getLatestDeployment(provider?.deployments);
   return (
     <Stack direction="row" spacing={2} flexGrow={1} alignItems="center">
-      {
-        !hideCheckbox && <Avatar
-          sx={{
-            height: 32,
-            width: 32,
-            backgroundColor: isSelected ? "primary.main" : "secondary.main",
-            color: isSelected ? "common.white" : "text.secondary",
-          }}
-        >
-          {isSelected ? <Check size={16} /> : <Circle size={16} />}
-        </Avatar>
-      }
+      {!hideCheckbox && <SelectionIndicator selected={isSelected} />}
 
       <Stack spacing={0.25} flexGrow={1}>
         <Stack spacing={0.25}>
@@ -221,9 +205,6 @@ export const AddLLMProviderComponent: React.FC = () => {
   >({});
   const [guardrails, setGuardrails] = useState<GuardrailSelection[]>([]);
   const [providerDrawerOpen, setProviderDrawerOpen] = useState(false);
-  const [providerSearchQuery, setProviderSearchQuery] = useState("");
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const backHref =
     orgId && projectId && agentId
@@ -696,100 +677,67 @@ export const AddLLMProviderComponent: React.FC = () => {
             )}
 
           </Form.Section>
-          <DrawerWrapper
+          <SelectionDrawer
             open={providerDrawerOpen}
             onClose={() => setProviderDrawerOpen(false)}
-            minWidth={740}
-            maxWidth={740}
-          >
-            <DrawerHeader
-              icon={<DoorClosedLocked size={24} />}
-              title="Select Service Provider"
-              onClose={() => setProviderDrawerOpen(false)}
-            />
-            <DrawerContent>
-              <Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Choose a service provider for this environment.
-                </Typography>
-                <SearchBar
-                  placeholder="Search providers"
-                  size="small"
-                  fullWidth
-                  value={providerSearchQuery}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setProviderSearchQuery(val);
-                    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-                    searchTimerRef.current = setTimeout(() => setDebouncedSearch(val), 250);
-                  }}
-                  sx={{ mb: 1 }}
-                />
-                <Stack spacing={1} sx={{ flex: 1, overflowY: "auto" }} >
-                  {(() => {
-                    const filtered = providers.filter((p) => {
-                      if (!debouncedSearch.trim()) return true;
-                      const q = debouncedSearch.toLowerCase();
-                      return (
-                        p.name.toLowerCase().includes(q) ||
-                        (p.template ?? "").toLowerCase().includes(q) ||
-                        (templateMap.get(p.template ?? "")?.displayName ?? "").toLowerCase().includes(q)
-                      );
-                    });
-                    if (filtered.length === 0) {
-                      return (
-                        <ListingTable.Container>
-                          <ListingTable.EmptyState
-                            illustration={<Search size={64} />}
-                            title={
-                              debouncedSearch.trim()
-                                ? "No service providers match your search"
-                                : "No service providers available"
-                            }
-                            description={
-                              debouncedSearch.trim()
-                                ? "Try a different keyword or clear the search filter."
-                                : "No service providers are available in the catalog."
-                            }
-                          />
-                        </ListingTable.Container>
-                      );
-                    }
-                    return filtered.map((p) => {
-                      const isSelected = providerByEnv[selectedEnvName] === p.uuid;
-                      return (
-                        <Form.CardButton
-                          key={p.uuid}
-                          onClick={() => {
-                            setProviderByEnv((prev) => ({
-                              ...prev,
-                              [selectedEnvName]: p.uuid,
-                            }));
-                            setProviderDrawerOpen(false);
-                          }}
-                          selected={isSelected}
-                          aria-label={`${p.name}. ${isSelected ? "Selected" : "Click to select"}`}
-                        >
-                          <Form.CardContent>
-                            <ProviderDisplay
-                              provider={p}
-                              isSelected={isSelected}
-                              templateInfo={templateMap.get(p.template ?? "")}
-                            />
-                          </Form.CardContent>
-                        </Form.CardButton>
-                      );
-                    });
-                  })()}
-                </Stack>
-              </Stack>
-            </DrawerContent>
-          </DrawerWrapper>
-          <GuardrailsSection
-            guardrails={guardrails}
-            onAddGuardrail={handleAddGuardrail}
-            onEditGuardrail={handleEditGuardrail}
-            onRemoveGuardrail={handleRemoveGuardrail}
+            icon={<DoorClosedLocked size={24} />}
+            title="Select Service Provider"
+            description="Choose a service provider for this environment."
+            searchPlaceholder="Search providers"
+            items={providers}
+            getItemKey={(p) => p.uuid}
+            isItemSelected={(p) => providerByEnv[selectedEnvName] === p.uuid}
+            matchesSearch={(p, query) =>
+              p.name.toLowerCase().includes(query) ||
+              (p.template ?? "").toLowerCase().includes(query) ||
+              (templateMap.get(p.template ?? "")?.displayName ?? "")
+                .toLowerCase()
+                .includes(query)
+            }
+            onSelect={(p) =>
+              setProviderByEnv((prev) => ({
+                ...prev,
+                [selectedEnvName]: p.uuid,
+              }))
+            }
+            renderItem={(p, isSelected) => (
+              <ProviderDisplay
+                provider={p}
+                isSelected={isSelected}
+                templateInfo={templateMap.get(p.template ?? "")}
+              />
+            )}
+            getItemAriaLabel={(p, isSelected) =>
+              `${p.name}. ${isSelected ? "Selected" : "Click to select"}`
+            }
+            emptyState={{
+              title: "No service providers available",
+              description: "No service providers are available in the catalog.",
+            }}
+            searchEmptyState={{
+              title: "No service providers match your search",
+              description: "Try a different keyword or clear the search filter.",
+            }}
+          />
+          <PolicyListSection
+            title="Guardrails"
+            description="Add safety policies to enforce consistent protections."
+            addButtonLabel="Add Guardrail"
+            drawerAddTitle="Add Guardrail"
+            drawerEditTitle="Edit Guardrail"
+            drawerAddSubtitle="Choose a guardrail to configure advanced options."
+            drawerEditSubtitle="Update the guardrail configuration."
+            policyNoun="guardrail"
+            loadingLabel="Loading guardrails..."
+            searchPlaceholder="Search guardrails..."
+            catalogErrorLabel="Failed to load guardrails."
+            emptySearchTitle="No guardrails match your search"
+            emptyCatalogTitle="No guardrails available"
+            emptyCatalogDescription="No guardrail policies are available in the catalog."
+            policies={guardrails}
+            onAdd={handleAddGuardrail}
+            onEdit={handleEditGuardrail}
+            onRemove={handleRemoveGuardrail}
           />
         </Form.Section>
 

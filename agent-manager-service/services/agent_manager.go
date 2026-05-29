@@ -2126,6 +2126,13 @@ func (s *agentManagerService) DeployAgent(ctx context.Context, orgName string, p
 
 	// Combine user-processed env vars with preserved system-managed env vars
 	deployReq.Env = append(envVars, systemManagedEnvVars...)
+
+	// Ensure Env is always non-nil so Deploy() replaces the Workload env vars rather than
+	// skipping the update. A nil slice is a no-op in Deploy(); an empty slice clears all vars.
+	if deployReq.Env == nil {
+		deployReq.Env = []client.EnvVar{}
+	}
+
 	s.logger.Debug("Final deploy env vars", "agentName", agentName, "totalCount", len(deployReq.Env))
 
 	// Process file mounts

@@ -78,6 +78,7 @@ var serviceProviderSet = wire.NewSet(
 	services.NewLLMProxyAPIKeyService,
 	services.NewAgentAPIKeyService,
 	services.NewLLMProxyDeploymentService,
+	services.NewMCPProxyService,
 	services.NewGatewayInternalAPIService,
 	services.NewMonitorScoresService,
 	services.NewCatalogService,
@@ -107,6 +108,7 @@ var controllerProviderSet = wire.NewSet(
 	controllers.NewLLMProxyAPIKeyController,
 	controllers.NewAgentAPIKeyController,
 	controllers.NewLLMProxyDeploymentController,
+	controllers.NewMCPProxyController,
 	ProvideWebSocketController,
 	controllers.NewGatewayInternalController,
 	controllers.NewMonitorController,
@@ -300,6 +302,7 @@ var repositoryProviderSet = wire.NewSet(
 	ProvideLLMProviderTemplateRepository,
 	ProvideLLMProviderRepository,
 	ProvideLLMProxyRepository,
+	ProvideMCPProxyRepository,
 	ProvideDeploymentRepository,
 	ProvideArtifactRepository,
 	ProvideScoreRepository,
@@ -310,6 +313,7 @@ var repositoryProviderSet = wire.NewSet(
 	ProvideAPIKeyRepository,
 	repositories.NewAgentConfigurationRepository,
 	repositories.NewEnvAgentModelMappingRepository,
+	repositories.NewEnvAgentMCPMappingRepository,
 	repositories.NewAgentEnvConfigVariableRepository,
 	repositories.NewMonitorLLMMappingRepository,
 	ProvideOrgPublisherCredentialRepository,
@@ -394,6 +398,10 @@ func ProvideLLMProviderRepository(db *gorm.DB) repositories.LLMProviderRepositor
 
 func ProvideLLMProxyRepository(db *gorm.DB) repositories.LLMProxyRepository {
 	return repositories.NewLLMProxyRepo(db)
+}
+
+func ProvideMCPProxyRepository(db *gorm.DB) repositories.MCPProxyRepository {
+	return repositories.NewMCPProxyRepo(db)
 }
 
 func ProvideDeploymentRepository(db *gorm.DB) repositories.DeploymentRepository {

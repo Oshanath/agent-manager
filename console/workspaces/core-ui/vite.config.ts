@@ -61,6 +61,7 @@ export default defineConfig({
       '@agent-management-platform/metrics': path.resolve(__dirname, '../pages/metrics/src'),
       '@agent-management-platform/eval': path.resolve(__dirname, '../pages/eval/src'),
       '@agent-management-platform/llm-providers': path.resolve(__dirname, '../pages/llm-providers/src'),
+      '@agent-management-platform/mcp-proxies': path.resolve(__dirname, '../pages/mcp-proxies/src'),
       '@agent-management-platform/gateways': path.resolve(__dirname, '../pages/gateways/src'),
     },
   },

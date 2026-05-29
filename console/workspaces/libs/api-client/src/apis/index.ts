@@ -32,6 +32,8 @@ export * from './runtime-logs';
 export * from './repositories';
 export * from './resource-configs';
 export * from './llm-providers';
+export * from './mcp-proxies';
+export * from './agent-mcp-proxies';
 export * from './gateways';
 export * from './git-secrets';
 export * from './agent-kinds';

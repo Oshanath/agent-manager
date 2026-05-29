@@ -60,10 +60,10 @@ export interface UpdateAgentModelConfigRequest {
 // -----------------------------------------------------------------------------
 
 export interface ProviderConfig {
-  providerName: string;
-  proxyUuid: string;
+  providerName?: string;
+  proxyUuid?: string;
   providerUuid?: string;
-  url: string;
+  url?: string;
   authInfo?: AuthInfo;
   policies?: LLMPolicy[];
   status?: string;
@@ -90,6 +90,7 @@ export interface AgentModelConfigResponse {
   organizationName: string;
   projectName: string;
   envMappings: Record<string, EnvProviderConfigMappings>;
+  envModelConfig?: Record<string, EnvProviderConfigMappings>;
   environmentVariables: EnvironmentVariableConfig[];
   createdAt: string;
   updatedAt: string;
