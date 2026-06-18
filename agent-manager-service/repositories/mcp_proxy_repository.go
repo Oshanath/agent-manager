@@ -39,7 +39,7 @@ type MCPProxyRepository interface {
 	GetByHandle(ctx context.Context, handle, orgUUID string) (*models.MCPProxy, error)
 	GetByHandleForUpdate(ctx context.Context, tx *gorm.DB, handle, orgUUID string) (*models.MCPProxy, error)
 	List(ctx context.Context, orgUUID string, limit, offset int) ([]*models.MCPProxy, error)
-	Delete(ctx context.Context, handle, orgUUID string) error
+	Delete(ctx context.Context, proxyID, orgUUID string) error
 	Count(ctx context.Context, orgUUID string) (int, error)
 	Exists(ctx context.Context, handle, orgUUID string) (bool, error)
 }
@@ -183,34 +183,41 @@ func (r *MCPProxyRepo) List(ctx context.Context, orgUUID string, limit, offset i
 	return proxies, nil
 }
 
-// Delete removes an MCP proxy and its artifact row.
-func (r *MCPProxyRepo) Delete(ctx context.Context, handle, orgUUID string) error {
+// Delete removes an MCP proxy and its artifact row by UUID.
+func (r *MCPProxyRepo) Delete(ctx context.Context, proxyID, orgUUID string) error {
+	// Parse proxyID as UUID
+	proxyUUID, err := uuid.Parse(proxyID)
+	if err != nil {
+		return fmt.Errorf("invalid MCP proxy UUID: %w", err)
+	}
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var proxy models.MCPProxy
-		err := tx.
-			Joins("JOIN artifacts a ON mcp_proxies.uuid = a.uuid").
-			Where("a.handle = ? AND a.organization_name = ? AND a.kind = ?", handle, orgUUID, models.KindMCPProxy).
-			First(&proxy).Error
-		if err != nil {
-			return err
+		// Verify the proxy exists and belongs to the organization
+		var artifact struct{ UUID uuid.UUID }
+		result := tx.Table("artifacts").
+			Select("uuid").
+			Where("uuid = ? AND organization_name = ? AND kind = ?", proxyUUID, orgUUID, models.KindMCPProxy).
+			Take(&artifact)
+		if result.Error != nil {
+			return result.Error
 		}
 
-		if err := tx.Where("artifact_uuid = ? AND organization_name = ?", proxy.UUID, orgUUID).
+		if err := tx.Where("artifact_uuid = ? AND organization_name = ?", proxyUUID, orgUUID).
 			Delete(&models.DeploymentStatusRecord{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("artifact_uuid = ? AND organization_name = ?", proxy.UUID, orgUUID).
+		if err := tx.Where("artifact_uuid = ? AND organization_name = ?", proxyUUID, orgUUID).
 			Delete(&models.Deployment{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("uuid = ?", proxy.UUID).Delete(&models.MCPProxy{}).Error; err != nil {
+		if err := tx.Where("uuid = ?", proxyUUID).Delete(&models.MCPProxy{}).Error; err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) && pgErr.Code == "23503" {
 				return utils.ErrMCPProxyHasMappings
 			}
 			return err
 		}
-		return r.artifactRepo.Delete(tx, proxy.UUID.String())
+		return r.artifactRepo.Delete(tx, proxyUUID.String())
 	})
 }
 

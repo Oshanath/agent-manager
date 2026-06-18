@@ -34,6 +34,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 
@@ -305,14 +306,22 @@ func (s *MCPProxyService) ListAvailableMCPPolicies(ctx context.Context, orgUUID 
 	}, nil
 }
 
-// Get retrieves an MCP proxy by handle.
+// resolveProxy looks up an MCP proxy by UUID or handle.
+func (s *MCPProxyService) resolveProxy(ctx context.Context, identifier, orgUUID string) (*models.MCPProxy, error) {
+	if _, err := uuid.Parse(identifier); err == nil {
+		return s.repo.GetByUUID(ctx, identifier, orgUUID)
+	}
+	return s.repo.GetByHandle(ctx, identifier, orgUUID)
+}
+
+// Get retrieves an MCP proxy by UUID or handle.
 func (s *MCPProxyService) Get(ctx context.Context, orgUUID, proxyID string) (*models.MCPProxyDTO, error) {
-	handle := strings.TrimSpace(proxyID)
-	if handle == "" {
+	identifier := strings.TrimSpace(proxyID)
+	if identifier == "" {
 		return nil, utils.ErrInvalidInput
 	}
 
-	proxy, err := s.repo.GetByHandle(ctx, handle, orgUUID)
+	proxy, err := s.resolveProxy(ctx, identifier, orgUUID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrMCPProxyNotFound
@@ -421,15 +430,15 @@ func (s *MCPProxyService) Update(ctx context.Context, orgUUID, proxyID string, r
 	return convertModelMCPProxyToSpec(updated), updated, nil
 }
 
-// Delete removes an MCP proxy by handle. MCP proxy mappings are deployable artifacts
+// Delete removes an MCP proxy by UUID or handle. MCP proxy mappings are deployable artifacts
 // derived from an MCP proxy, so the source proxy cannot be deleted while mappings exist.
 func (s *MCPProxyService) Delete(ctx context.Context, orgUUID, proxyID string) error {
-	handle := strings.TrimSpace(proxyID)
-	if handle == "" {
+	identifier := strings.TrimSpace(proxyID)
+	if identifier == "" {
 		return utils.ErrInvalidInput
 	}
 
-	proxy, err := s.repo.GetByHandle(ctx, handle, orgUUID)
+	proxy, err := s.resolveProxy(ctx, identifier, orgUUID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utils.ErrMCPProxyNotFound
@@ -453,7 +462,9 @@ func (s *MCPProxyService) Delete(ctx context.Context, orgUUID, proxyID string) e
 	// would be returned.
 	proxyGatewayIDs := s.gatewayIDsForDeletion(ctx, proxy, orgUUID)
 
-	if err := s.repo.Delete(ctx, handle, orgUUID); err != nil {
+	// proxyID may be a handle, so use the UUID resolved above rather than the
+	// raw identifier.
+	if err := s.repo.Delete(ctx, proxy.UUID.String(), orgUUID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return utils.ErrMCPProxyNotFound
 		}
