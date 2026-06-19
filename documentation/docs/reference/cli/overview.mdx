@@ -14,7 +14,7 @@ amctl [command] [TYPE] [NAME] [flags]
 Where:
 
 - **command:** Operation to perform — for example `login`, `get`, `create`, `delete`, `deploy`, `list`.
-- **TYPE:** Resource group the command operates on — `agent`, `project`, `context`, `skills`, `build`, `traces`.
+- **TYPE:** Resource group the command operates on — `agent`, `project`, `mcp-proxy`, `context`, `skills`, `build`, `traces`.
 - **NAME:** Identifier of the resource. Many commands also accept the name as a flag (e.g. `--project`) or pick it up from the [linked directory](#linked-context).
 - **flags:** Optional flags. See each command page for details.
 
@@ -33,6 +33,7 @@ amctl <command> --help
 | [`amctl context`](./context.mdx) | Inspect or switch the active instance, organization, and linked project |
 | [`amctl project`](./project.mdx) | Create, list, and delete projects |
 | [`amctl agent`](./agent.mdx) | Create, build, deploy, and observe agents |
+| [`amctl mcp-proxy`](./mcp-proxy.mdx) | Template, create, list, and delete MCP proxies |
 | [`amctl skills`](./skills.mdx) | Install AI assistant skills locally |
 | [`amctl version`](./version.mdx) | Print the CLI version |
 

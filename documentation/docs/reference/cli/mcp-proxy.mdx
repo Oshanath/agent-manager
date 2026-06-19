@@ -1,0 +1,194 @@
+---
+sidebar_position: 6
+sidebar_label: MCP Proxy
+---
+
+# amctl mcp-proxy
+
+Manage [MCP proxies](../../tutorials/register-mcp-proxy.mdx) in an organization. An MCP proxy is an organization-level resource that fronts an upstream Model Context Protocol (MCP) server, discovers its tools/resources/prompts, and republishes them through an AI Gateway so they can be secured and attached to agents.
+
+```
+amctl mcp-proxy [command]
+```
+
+The command group is also available under the alias `amctl mcp-proxies`.
+
+## Subcommands
+
+| Command | Purpose |
+|---------|---------|
+| [`template`](#amctl-mcp-proxy-template) | Connect to an MCP server and write a proxy definition file |
+| [`create`](#amctl-mcp-proxy-create) | Create an MCP proxy from a definition file |
+| [`list`](#amctl-mcp-proxy-list) | List MCP proxies in the active organization |
+| [`get`](#amctl-mcp-proxy-get) | Show details of an MCP proxy |
+| [`delete`](#amctl-mcp-proxy-delete) | Delete an MCP proxy |
+
+## Options inherited from parent commands
+
+| Name | Description |
+|------|-------------|
+| `--org` | Override the active organization. |
+| `--json` | Output as JSON envelopes. |
+
+:::info Two-step creation
+Creating a proxy is a two-step flow. First [`template`](#amctl-mcp-proxy-template) connects to the upstream MCP server and writes a `<handle>.yaml` definition file. Review/edit that file, then pass it to [`create`](#amctl-mcp-proxy-create). The upstream auth header **value** is never written to the file — you supply it again at create time.
+:::
+
+---
+
+## amctl mcp-proxy template
+
+Connect to an MCP server URL, fetch its server info and capabilities (tools, prompts, resources), and write a `<handle>.yaml` definition file you can edit before creating the proxy.
+
+```
+amctl mcp-proxy template <url> [flags]
+```
+
+### Arguments
+
+| Name | Description |
+|------|-------------|
+| `<url>` | MCP server endpoint URL, including the MCP path (e.g. `https://api.example.com/mcp`). |
+
+### Examples
+
+```bash
+# Public MCP server
+amctl mcp-proxy template https://api.example.com/mcp
+
+# Server that requires an auth header, writing to a chosen path
+amctl mcp-proxy template https://api.example.com/mcp \
+  --auth-header-name Authorization \
+  --auth-header-value "Bearer sk-..." \
+  --output example.yaml
+
+# Read the auth header value from stdin
+cat token.txt | amctl mcp-proxy template https://api.example.com/mcp \
+  --auth-header-name Authorization \
+  --output example.yaml
+```
+
+### Options
+
+| Name | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--auth-header-name` | | string | (none) | Upstream auth header name (e.g. `Authorization`). |
+| `--auth-header-value` | | string | (none) | Upstream auth header value. When `--auth-header-name` is set and this flag is omitted, the value is read from stdin. Used only to reach the server; never written to the file. |
+| `--output` | `-o` | string | `<handle>.yaml` | Output file path. |
+| `--force` | | bool | `false` | Overwrite the output file if it already exists. |
+
+:::note
+The endpoint URL must include the server's MCP path. Pointing at the host root (e.g. `https://api.example.com`) typically returns 404 and fails with "Failed to fetch MCP server info" — append the MCP path such as `/mcp`.
+:::
+
+---
+
+## amctl mcp-proxy create
+
+Create an MCP proxy from a definition file produced by [`template`](#amctl-mcp-proxy-template) (and optionally edited). The proxy name, handle, version, context, and capabilities are read from the file.
+
+```
+amctl mcp-proxy create <file> [flags]
+```
+
+### Arguments
+
+| Name | Description |
+|------|-------------|
+| `<file>` | Path to a proxy definition YAML file. |
+
+### Examples
+
+```bash
+# Create from a definition with no upstream auth
+amctl mcp-proxy create example.yaml
+
+# Definition declares an upstream auth header — supply the value at create time
+amctl mcp-proxy create example.yaml --auth-header-value "Bearer sk-..."
+
+# Read the value from stdin to keep it out of shell history
+cat token.txt | amctl mcp-proxy create example.yaml
+```
+
+### Options
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `--auth-header-value` | string | (none) | Upstream auth header value. When the definition declares `upstream.authHeaderName` and this flag is omitted, the value is read from stdin. |
+| `--gateways` | strings | (none) | Gateway IDs/handles to deploy the proxy to. Repeatable. |
+
+---
+
+## amctl mcp-proxy list
+
+List MCP proxies in the active organization.
+
+```
+amctl mcp-proxy list
+```
+
+### Example
+
+```bash
+amctl mcp-proxy list --json | jq '.data.list[].name'
+```
+
+---
+
+## amctl mcp-proxy get
+
+Show details of an MCP proxy by its UUID or handle.
+
+```
+amctl mcp-proxy get <proxy>
+```
+
+### Arguments
+
+| Name | Description |
+|------|-------------|
+| `<proxy>` | MCP proxy UUID or handle. |
+
+### Example
+
+```bash
+amctl mcp-proxy get example
+```
+
+---
+
+## amctl mcp-proxy delete
+
+Delete an MCP proxy by its UUID or handle. Asks for confirmation unless `--yes` is set.
+
+```
+amctl mcp-proxy delete <proxy> [flags]
+```
+
+### Arguments
+
+| Name | Description |
+|------|-------------|
+| `<proxy>` | MCP proxy UUID or handle. |
+
+### Options
+
+| Name | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--yes` | `-y` | bool | `false` | Skip the confirmation prompt. |
+
+:::note
+A proxy that is still attached to one or more agents cannot be deleted (the server returns a conflict). Remove the proxy from those agents first, then retry.
+:::
+
+### Example
+
+```bash
+amctl mcp-proxy delete example --yes
+```
+
+## See Also
+
+- [Register an MCP Proxy](../../tutorials/register-mcp-proxy.mdx) — the Console workflow for the same resource
+- [Configure agent MCP proxies](../../tutorials/configure-agent-mcp-proxies.mdx) — attach proxies to agents
+- [`amctl agent create`](./agent.mdx#amctl-agent-create) — attach a proxy to an agent at create time with `--mcp-proxy`
