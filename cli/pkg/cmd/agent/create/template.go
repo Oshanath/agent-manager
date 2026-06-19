@@ -76,4 +76,11 @@ spec:
   #         name: <ENV_VAR_FOR_URL>
   #       - key: apikey
   #         name: <ENV_VAR_FOR_API_KEY>
+  # mcpConfig:                          # attach a configured MCP proxy
+  #   - proxyName: <proxy-handle>
+  #     environmentVariables:
+  #       - key: url
+  #         name: <ENV_VAR_FOR_URL>
+  #       - key: apikey
+  #         name: <ENV_VAR_FOR_API_KEY>
 `

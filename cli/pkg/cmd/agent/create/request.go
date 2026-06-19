@@ -95,6 +95,7 @@ func Build(opts *CreateOptions) (amsvc.CreateAgentRequest, []string) {
 	v = append(v, cv...)
 	req.Configurations = cfg
 	req.ModelConfig = buildModelConfig(opts)
+	req.McpConfig = buildMcpConfig(opts)
 
 	return req, append(v, droppedInternalFlags(opts)...)
 }
@@ -253,10 +254,28 @@ func buildModelConfig(opts *CreateOptions) *[]amsvc.ModelConfigRequest {
 	return &[]amsvc.ModelConfigRequest{mc}
 }
 
+func buildMcpConfig(opts *CreateOptions) *[]amsvc.MCPConfigRequest {
+	if opts.MCPProxy == "" {
+		return nil
+	}
+	mc := amsvc.MCPConfigRequest{ProxyName: opts.MCPProxy}
+	var evs []amsvc.EnvironmentVariableConfig
+	if opts.MCPURLEnv != "" {
+		evs = append(evs, amsvc.EnvironmentVariableConfig{Key: "url", Name: opts.MCPURLEnv})
+	}
+	if opts.MCPAPIKeyEnv != "" {
+		evs = append(evs, amsvc.EnvironmentVariableConfig{Key: "apikey", Name: opts.MCPAPIKeyEnv})
+	}
+	if len(evs) > 0 {
+		mc.EnvironmentVariables = &evs
+	}
+	return &[]amsvc.MCPConfigRequest{mc}
+}
+
 // droppedInternalFlags reports internal-mode flag input the builder dropped:
 // chat-api never carries base-path/openapi-spec (and the port is fixed), the
-// build union holds exactly one variant's fields, and LLM env names without a
-// provider never reach modelConfig.
+// build union holds exactly one variant's fields, and LLM/MCP env names without
+// a provider/proxy never reach modelConfig/mcpConfig.
 func droppedInternalFlags(opts *CreateOptions) []string {
 	var v []string
 
@@ -293,6 +312,10 @@ func droppedInternalFlags(opts *CreateOptions) []string {
 		v = append(v, "--llm-url-env/--llm-api-key-env require --llm-provider")
 	}
 
+	if (opts.MCPURLEnv != "" || opts.MCPAPIKeyEnv != "") && opts.MCPProxy == "" {
+		v = append(v, "--mcp-url-env/--mcp-api-key-env require --mcp-proxy")
+	}
+
 	return v
 }
 
@@ -327,6 +350,9 @@ func droppedExternalFlags(opts *CreateOptions) []string {
 	disallow("--llm-provider", opts.LLMProvider != "")
 	disallow("--llm-url-env", opts.LLMURLEnv != "")
 	disallow("--llm-api-key-env", opts.LLMAPIKeyEnv != "")
+	disallow("--mcp-proxy", opts.MCPProxy != "")
+	disallow("--mcp-url-env", opts.MCPURLEnv != "")
+	disallow("--mcp-api-key-env", opts.MCPAPIKeyEnv != "")
 
 	return v
 }

@@ -39,6 +39,7 @@ var contentFlags = []string{
 	"port", "base-path", "openapi-spec", "no-auto-instrumentation",
 	"env", "env-secret", "env-from-secret",
 	"llm-provider", "llm-url-env", "llm-api-key-env",
+	"mcp-proxy", "mcp-url-env", "mcp-api-key-env",
 }
 
 // changedContentFlags uses Changed (not zero-value checks) because --port
@@ -230,6 +231,14 @@ func internalRequestViolations(req amsvc.CreateAgentRequest) []string {
 		}
 	}
 
+	if req.McpConfig != nil {
+		for i, mc := range *req.McpConfig {
+			if mc.ProxyName == "" {
+				v = append(v, fmt.Sprintf("spec.mcpConfig[%d].proxyName is required", i))
+			}
+		}
+	}
+
 	return v
 }
 
@@ -314,6 +323,7 @@ func externalRequestViolations(req amsvc.CreateAgentRequest) []string {
 	disallow("spec.inputInterface", req.InputInterface != nil)
 	disallow("spec.configurations", req.Configurations != nil)
 	disallow("spec.modelConfig", req.ModelConfig != nil)
+	disallow("spec.mcpConfig", req.McpConfig != nil)
 
 	return v
 }

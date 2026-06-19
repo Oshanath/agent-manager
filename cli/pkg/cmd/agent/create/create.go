@@ -76,6 +76,10 @@ type CreateOptions struct {
 	LLMProvider  string
 	LLMURLEnv    string
 	LLMAPIKeyEnv string
+
+	MCPProxy     string
+	MCPURLEnv    string
+	MCPAPIKeyEnv string
 }
 
 func NewCreateCmd(f *cmdutil.Factory) *cobra.Command {
@@ -169,6 +173,9 @@ func NewCreateCmd(f *cmdutil.Factory) *cobra.Command {
 	cmd.Flags().StringVar(&opts.LLMProvider, "llm-provider", "", "Handle of a configured LLM provider to attach (internal only)")
 	cmd.Flags().StringVar(&opts.LLMURLEnv, "llm-url-env", "", "Env var name for the provider URL (default: auto-generated)")
 	cmd.Flags().StringVar(&opts.LLMAPIKeyEnv, "llm-api-key-env", "", "Env var name for the provider API key (default: auto-generated)")
+	cmd.Flags().StringVar(&opts.MCPProxy, "mcp-proxy", "", "Handle of a configured MCP proxy to attach (internal only)")
+	cmd.Flags().StringVar(&opts.MCPURLEnv, "mcp-url-env", "", "Env var name for the MCP proxy URL (default: auto-generated)")
+	cmd.Flags().StringVar(&opts.MCPAPIKeyEnv, "mcp-api-key-env", "", "Env var name for the MCP proxy API key (default: auto-generated)")
 
 	_ = cmd.RegisterFlagCompletionFunc("provisioning", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{provisioningInternal, provisioningExternal}, cobra.ShellCompDirectiveNoFileComp

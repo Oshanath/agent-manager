@@ -2049,6 +2049,39 @@ type CreateLLMProxyRequest struct {
 	ProviderUuid openapi_types.UUID `json:"providerUuid"`
 }
 
+// CreateMCPProxyRequest defines model for CreateMCPProxyRequest.
+type CreateMCPProxyRequest struct {
+	// Capabilities MCP server capabilities discovered from the upstream
+	Capabilities *MCPProxyCapabilities `json:"capabilities,omitempty"`
+
+	// Context Routing context path
+	Context *string `json:"context,omitempty"`
+
+	// Description MCP proxy description
+	Description *string `json:"description,omitempty"`
+
+	// Gateways Gateway IDs/handles to deploy the proxy to
+	Gateways *[]string `json:"gateways,omitempty"`
+
+	// Id MCP proxy handle (unique within the org)
+	Id string `json:"id"`
+
+	// McpSpecVersion MCP spec version reported by the upstream server
+	McpSpecVersion *string `json:"mcpSpecVersion,omitempty"`
+
+	// Name Human-readable MCP proxy name
+	Name     string          `json:"name"`
+	Policies *[]MCPPolicy    `json:"policies,omitempty"`
+	Security *SecurityConfig `json:"security,omitempty"`
+	Upstream UpstreamConfig  `json:"upstream"`
+
+	// Version MCP proxy version
+	Version string `json:"version"`
+
+	// Vhost Virtual host
+	Vhost *string `json:"vhost,omitempty"`
+}
+
 // CreateMonitorRequest defines model for CreateMonitorRequest.
 type CreateMonitorRequest struct {
 	// Description Optional description for the monitor
@@ -3327,6 +3360,126 @@ type MCPConfigRequest struct {
 	ProxyName string `json:"proxyName"`
 }
 
+// MCPPolicy defines model for MCPPolicy.
+type MCPPolicy struct {
+	// DisplayName Human-readable policy name
+	DisplayName *string `json:"displayName,omitempty"`
+
+	// ExecutionCondition Condition controlling when the policy executes
+	ExecutionCondition *string `json:"executionCondition,omitempty"`
+
+	// Name Policy name
+	Name string `json:"name"`
+
+	// Params Policy parameters
+	Params *map[string]interface{} `json:"params,omitempty"`
+
+	// Version Policy version
+	Version string `json:"version"`
+}
+
+// MCPProxyCapabilities MCP server capabilities discovered from the upstream
+type MCPProxyCapabilities struct {
+	Prompts   *[]map[string]interface{} `json:"prompts,omitempty"`
+	Resources *[]map[string]interface{} `json:"resources,omitempty"`
+	Tools     *[]map[string]interface{} `json:"tools,omitempty"`
+}
+
+// MCPProxyListItem defines model for MCPProxyListItem.
+type MCPProxyListItem struct {
+	// Context Routing context path
+	Context   *string    `json:"context,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// CreatedBy User who created the MCP proxy
+	CreatedBy *string `json:"createdBy,omitempty"`
+
+	// Description MCP proxy description
+	Description *string `json:"description,omitempty"`
+
+	// Id MCP proxy handle (unique within the org); accepted by get/delete and agent attach
+	Id *string `json:"id,omitempty"`
+
+	// McpSpecVersion MCP spec version reported by the upstream server
+	McpSpecVersion *string `json:"mcpSpecVersion,omitempty"`
+
+	// Name Human-readable MCP proxy name
+	Name *string `json:"name,omitempty"`
+
+	// Status MCP proxy status
+	Status    *string    `json:"status,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+	// Version MCP proxy version
+	Version *string `json:"version,omitempty"`
+}
+
+// MCPProxyListResponse defines model for MCPProxyListResponse.
+type MCPProxyListResponse struct {
+	Count      int                `json:"count"`
+	List       []MCPProxyListItem `json:"list"`
+	Pagination PaginationInfo     `json:"pagination"`
+}
+
+// MCPProxyResponse defines model for MCPProxyResponse.
+type MCPProxyResponse struct {
+	// Capabilities MCP server capabilities discovered from the upstream
+	Capabilities *MCPProxyCapabilities `json:"capabilities,omitempty"`
+
+	// Context Routing context path
+	Context   *string    `json:"context,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// CreatedBy User who created the MCP proxy
+	CreatedBy *string `json:"createdBy,omitempty"`
+
+	// Description MCP proxy description
+	Description *string `json:"description,omitempty"`
+
+	// Gateways Gateways the proxy is deployed to
+	Gateways *[]string `json:"gateways,omitempty"`
+
+	// Id MCP proxy handle (unique within the org); accepted by get/delete and agent attach
+	Id string `json:"id"`
+
+	// InCatalog Whether the proxy is published to the catalog
+	InCatalog bool `json:"inCatalog"`
+
+	// McpSpecVersion MCP spec version reported by the upstream server
+	McpSpecVersion *string `json:"mcpSpecVersion,omitempty"`
+
+	// Name Human-readable MCP proxy name
+	Name      string          `json:"name"`
+	Policies  *[]MCPPolicy    `json:"policies,omitempty"`
+	Security  *SecurityConfig `json:"security,omitempty"`
+	UpdatedAt *time.Time      `json:"updatedAt,omitempty"`
+	Upstream  UpstreamConfig  `json:"upstream"`
+
+	// Version MCP proxy version
+	Version string `json:"version"`
+
+	// Vhost Virtual host
+	Vhost *string `json:"vhost,omitempty"`
+}
+
+// MCPServerInfoFetchRequest defines model for MCPServerInfoFetchRequest.
+type MCPServerInfoFetchRequest struct {
+	Auth *UpstreamAuth `json:"auth,omitempty"`
+
+	// Url MCP server endpoint URL
+	Url string `json:"url"`
+}
+
+// MCPServerInfoFetchResponse MCP server metadata and capabilities discovered from the upstream
+type MCPServerInfoFetchResponse struct {
+	Prompts   *[]map[string]interface{} `json:"prompts,omitempty"`
+	Resources *[]map[string]interface{} `json:"resources,omitempty"`
+
+	// ServerInfo Server implementation info reported by the MCP server
+	ServerInfo *map[string]interface{}   `json:"serverInfo,omitempty"`
+	Tools      *[]map[string]interface{} `json:"tools,omitempty"`
+}
+
 // MetricDataPoint A single metric data point with timestamp and value
 type MetricDataPoint struct {
 	// Time Timestamp of the metric data point in RFC3339 format
@@ -4485,7 +4638,7 @@ type UpstreamAuth struct {
 	// Type Authentication type
 	Type UpstreamAuthType `json:"type"`
 
-	// Value Authentication value/token
+	// Value Authentication value/token. Write-only — accepted in requests but never returned in responses.
 	Value *string `json:"value,omitempty"`
 }
 
@@ -4698,6 +4851,15 @@ type UndeployLLMProviderDeploymentParams struct {
 
 // ListLLMProxiesByProviderParams defines parameters for ListLLMProxiesByProvider.
 type ListLLMProxiesByProviderParams struct {
+	// Limit Maximum number of results to return
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of results to skip
+	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListMCPProxiesParams defines parameters for ListMCPProxies.
+type ListMCPProxiesParams struct {
 	// Limit Maximum number of results to return
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
@@ -4973,6 +5135,12 @@ type UpdateLLMProviderCatalogStatusJSONRequestBody = UpdateLLMProviderCatalogReq
 
 // DeployLLMProviderJSONRequestBody defines body for DeployLLMProvider for application/json ContentType.
 type DeployLLMProviderJSONRequestBody = DeployAgentRequest
+
+// CreateMCPProxyJSONRequestBody defines body for CreateMCPProxy for application/json ContentType.
+type CreateMCPProxyJSONRequestBody = CreateMCPProxyRequest
+
+// FetchMCPServerInfoJSONRequestBody defines body for FetchMCPServerInfo for application/json ContentType.
+type FetchMCPServerInfoJSONRequestBody = MCPServerInfoFetchRequest
 
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
 type CreateProjectJSONRequestBody = CreateProjectRequest

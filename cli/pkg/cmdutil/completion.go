@@ -277,6 +277,47 @@ func CompleteLLMProviders(cmd *cobra.Command, f *Factory) []string {
 	return out
 }
 
+// CompleteMCPProxies returns sorted MCP proxy handles in the resolved org.
+// Org resolution follows ResolveOrgProject(cmd, true, false). Returns nil if org
+// cannot be resolved or on any API error.
+func CompleteMCPProxies(cmd *cobra.Command, f *Factory) []string {
+	const op = "CompleteMCPProxies"
+	org, _, err := f.ResolveOrgProject(cmd, true, false)
+	if err != nil {
+		logCompletionErr(op, nil, err)
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(cmd.Context(), completionTimeout)
+	defer cancel()
+
+	client, err := f.AgentManager(ctx)
+	if err != nil {
+		logCompletionErr(op, map[string]string{"org": org}, err)
+		return nil
+	}
+	resp, err := client.ListMCPProxiesWithResponse(ctx, org, &amsvc.ListMCPProxiesParams{})
+	if err != nil {
+		logCompletionErr(op, map[string]string{"org": org}, err)
+		return nil
+	}
+	if resp.JSON200 == nil {
+		logCompletionErr(op, map[string]string{"org": org}, fmt.Errorf("status %d", resp.StatusCode()))
+		return nil
+	}
+	// get/delete and `agent --mcp-proxy` resolve a proxy by handle (or UUID); the
+	// list item's Id field carries the handle, so suggest that — not the
+	// human-readable Name, which is not a valid identifier.
+	out := make([]string, 0, len(resp.JSON200.List))
+	for _, p := range resp.JSON200.List {
+		if p.Id != nil {
+			out = append(out, *p.Id)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // CompleteLLMProviderTemplates returns sorted LLM provider template handles in
 // the resolved org (including built-in system templates). Returns nil if org
 // cannot be resolved or on any API error.

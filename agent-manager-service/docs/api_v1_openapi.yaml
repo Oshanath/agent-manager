@@ -4007,6 +4007,256 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   # ============================================
+  # MCP PROXY ENDPOINTS
+  # ============================================
+
+  /orgs/{orgName}/mcp-proxies:
+    parameters:
+      - name: orgName
+        in: path
+        required: true
+        description: Organization name/handle
+        schema:
+          type: string
+
+    get:
+      tags:
+        - MCP Proxies
+      summary: List all MCP proxies
+      description: Retrieve a paginated list of MCP proxies in an organization
+      operationId: listMCPProxies
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of results to skip
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Successfully retrieved MCP proxy list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MCPProxyListResponse"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags:
+        - MCP Proxies
+      summary: Create a new MCP proxy
+      description: Create a new MCP proxy in an organization
+      operationId: createMCPProxy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMCPProxyRequest"
+      responses:
+        "201":
+          description: MCP proxy created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MCPProxyResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: MCP proxy already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orgs/{orgName}/mcp-proxies/fetch-server-info:
+    parameters:
+      - name: orgName
+        in: path
+        required: true
+        description: Organization name/handle
+        schema:
+          type: string
+
+    post:
+      tags:
+        - MCP Proxies
+      summary: Fetch MCP server info
+      description: >-
+        Connect to an MCP server URL and retrieve its server info and
+        capabilities (tools, prompts, resources). Used to pre-populate an MCP
+        proxy definition before creation.
+      operationId: fetchMCPServerInfo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MCPServerInfoFetchRequest"
+      responses:
+        "200":
+          description: Successfully fetched MCP server info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MCPServerInfoFetchResponse"
+        "400":
+          description: Invalid request or MCP server URL is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orgs/{orgName}/mcp-proxies/{proxyId}:
+    parameters:
+      - name: orgName
+        in: path
+        required: true
+        description: Organization name/handle
+        schema:
+          type: string
+      - name: proxyId
+        in: path
+        required: true
+        description: MCP proxy UUID or handle
+        schema:
+          type: string
+
+    get:
+      tags:
+        - MCP Proxies
+      summary: Get MCP proxy details
+      description: Retrieve detailed information about a specific MCP proxy by UUID or handle
+      operationId: getMCPProxy
+      responses:
+        "200":
+          description: Successfully retrieved MCP proxy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MCPProxyResponse"
+        "400":
+          description: Invalid MCP proxy ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: MCP proxy not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - MCP Proxies
+      summary: Delete MCP proxy
+      description: Delete an MCP proxy by UUID or handle
+      operationId: deleteMCPProxy
+      responses:
+        "204":
+          description: MCP proxy deleted successfully
+        "400":
+          description: Invalid MCP proxy ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: MCP proxy not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: MCP proxy has associated mappings and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ============================================
   # LLM PROVIDER ENDPOINTS
   # ============================================
 
@@ -12056,6 +12306,241 @@ components:
           format: int32
 
     # ============================================
+    # MCP PROXY SCHEMAS
+    # ============================================
+
+    MCPProxyResponse:
+      type: object
+      required:
+        - id
+        - name
+        - version
+        - upstream
+        - inCatalog
+      properties:
+        id:
+          type: string
+          description: MCP proxy handle (unique within the org); accepted by get/delete and agent attach
+        name:
+          type: string
+          description: Human-readable MCP proxy name
+        version:
+          type: string
+          description: MCP proxy version
+        description:
+          type: string
+          description: MCP proxy description
+        createdBy:
+          type: string
+          description: User who created the MCP proxy
+        context:
+          type: string
+          description: Routing context path
+        vhost:
+          type: string
+          description: Virtual host
+        mcpSpecVersion:
+          type: string
+          description: MCP spec version reported by the upstream server
+        inCatalog:
+          type: boolean
+          description: Whether the proxy is published to the catalog
+        gateways:
+          type: array
+          items:
+            type: string
+          description: Gateways the proxy is deployed to
+        upstream:
+          $ref: "#/components/schemas/UpstreamConfig"
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/MCPPolicy"
+        capabilities:
+          $ref: "#/components/schemas/MCPProxyCapabilities"
+        security:
+          $ref: "#/components/schemas/SecurityConfig"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MCPProxyListResponse:
+      type: object
+      required:
+        - count
+        - list
+        - pagination
+      properties:
+        count:
+          type: integer
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/MCPProxyListItem"
+        pagination:
+          $ref: "#/components/schemas/PaginationInfo"
+
+    MCPProxyListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: MCP proxy handle (unique within the org); accepted by get/delete and agent attach
+        name:
+          type: string
+          description: Human-readable MCP proxy name
+        version:
+          type: string
+          description: MCP proxy version
+        status:
+          type: string
+          description: MCP proxy status
+        description:
+          type: string
+          description: MCP proxy description
+        context:
+          type: string
+          description: Routing context path
+        mcpSpecVersion:
+          type: string
+          description: MCP spec version reported by the upstream server
+        createdBy:
+          type: string
+          description: User who created the MCP proxy
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MCPPolicy:
+      type: object
+      required:
+        - name
+        - version
+      properties:
+        name:
+          type: string
+          description: Policy name
+        version:
+          type: string
+          description: Policy version
+        displayName:
+          type: string
+          description: Human-readable policy name
+        executionCondition:
+          type: string
+          description: Condition controlling when the policy executes
+        params:
+          type: object
+          additionalProperties: true
+          description: Policy parameters
+
+    MCPProxyCapabilities:
+      type: object
+      description: MCP server capabilities discovered from the upstream
+      properties:
+        prompts:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        resources:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        tools:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    CreateMCPProxyRequest:
+      type: object
+      required:
+        - id
+        - name
+        - version
+        - upstream
+      properties:
+        id:
+          type: string
+          description: MCP proxy handle (unique within the org)
+        name:
+          type: string
+          description: Human-readable MCP proxy name
+        version:
+          type: string
+          description: MCP proxy version
+        description:
+          type: string
+          description: MCP proxy description
+        context:
+          type: string
+          description: Routing context path
+        vhost:
+          type: string
+          description: Virtual host
+        mcpSpecVersion:
+          type: string
+          description: MCP spec version reported by the upstream server
+        upstream:
+          $ref: "#/components/schemas/UpstreamConfig"
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/MCPPolicy"
+        capabilities:
+          $ref: "#/components/schemas/MCPProxyCapabilities"
+        security:
+          $ref: "#/components/schemas/SecurityConfig"
+        gateways:
+          type: array
+          items:
+            type: string
+          description: Gateway IDs/handles to deploy the proxy to
+
+    MCPServerInfoFetchRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: MCP server endpoint URL
+        auth:
+          $ref: "#/components/schemas/UpstreamAuth"
+
+    MCPServerInfoFetchResponse:
+      type: object
+      description: MCP server metadata and capabilities discovered from the upstream
+      properties:
+        serverInfo:
+          type: object
+          additionalProperties: true
+          description: Server implementation info reported by the MCP server
+        tools:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        prompts:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        resources:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    # ============================================
     # LLM PROXY SCHEMAS
     # ============================================
 
@@ -12316,7 +12801,8 @@ components:
           example: Authorization
         value:
           type: string
-          description: Authentication value/token
+          writeOnly: true
+          description: Authentication value/token. Write-only — accepted in requests but never returned in responses.
           example: Bearer sk-...
 
     LLMAccessControl:

@@ -309,7 +309,10 @@ func (s *MCPProxyService) ListAvailableMCPPolicies(ctx context.Context, orgUUID 
 // resolveProxy looks up an MCP proxy by UUID or handle.
 func (s *MCPProxyService) resolveProxy(ctx context.Context, identifier, orgUUID string) (*models.MCPProxy, error) {
 	if _, err := uuid.Parse(identifier); err == nil {
-		return s.repo.GetByUUID(ctx, identifier, orgUUID)
+		proxy, uuidErr := s.repo.GetByUUID(ctx, identifier, orgUUID)
+		if uuidErr == nil && proxy != nil {
+			return proxy, nil
+		}
 	}
 	return s.repo.GetByHandle(ctx, identifier, orgUUID)
 }

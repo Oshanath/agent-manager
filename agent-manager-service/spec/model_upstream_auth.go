@@ -23,7 +23,7 @@ type UpstreamAuth struct {
 	Type string `json:"type"`
 	// Authentication header name
 	Header *string `json:"header,omitempty"`
-	// Authentication value/token
+	// Authentication value/token. Write-only — accepted in requests but never returned in responses.
 	Value *string `json:"value,omitempty"`
 }
 
