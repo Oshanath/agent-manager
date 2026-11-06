@@ -10,8 +10,10 @@ fastapi==0.115.12
 uvicorn[standard]==0.34.0
 pydantic>=2.0,<3
 
-# MCP Python SDK (required by langchain-mcp-adapters)
-mcp>=1.9.0
+# MCP Python SDK (required by langchain-mcp-adapters). Capped below 2: mcp 2.x
+# removed mcp.client.streamable_http.streamablehttp_client, which
+# langchain-mcp-adapters 0.1.7 imports, so the agent fails at import time.
+mcp>=1.9.0,<2
 
 python-dotenv>=1.0
 
